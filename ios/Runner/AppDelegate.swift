@@ -1,54 +1,56 @@
 import UIKit
 import Flutter
-import ReplayKit
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
-  override func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-  ) -> Bool {
 
-    let controller = window?.rootViewController as! FlutterViewController
-    let channel = FlutterMethodChannel(name: "com.example.replaykit/broadcast", binaryMessenger: controller.binaryMessenger)
+    private var broadcastManager: BroadcastManager?
+    private var pipManager: PiPManager?
 
-    channel.setMethodCallHandler({
-      (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
-      if call.method == "startBroadcast" {
-        BroadcastManager.start()
-        result("started")
-      } else if call.method == "stopBroadcast" {
-        BroadcastManager.stop()
-        result("stopped")
-      } else {
-        result(FlutterMethodNotImplemented)
-      }
-    })
+    override func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
-}
+        // Inicializace Flutter
+        let controller: FlutterViewController = window?.rootViewController as! FlutterViewController
+        let channel = FlutterMethodChannel(name: "com.example.replaykit/broadcast",
+                                           binaryMessenger: controller.binaryMessenger)
 
-// 🧩 Přidej tohle sem ↓↓↓
-@objc class BroadcastManager: NSObject {
-    static func start() {
-        if #available(iOS 12.0, *) {
-            let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 60, height: 60))
-            picker.preferredExtension = "com.example.flutterAppAndrejs.ScreenBroadcastUploadExtension"
-            
-            if let button = picker.subviews.first as? UIButton {
-                button.sendActions(for: .allTouchEvents)
-            }
-        }
-    }
+        // Inicializace managerů
+        broadcastManager = BroadcastManager()
+        pipManager = PiPManager()
 
-    static func stop() {
-        if #available(iOS 12.0, *) {
-            RPScreenRecorder.shared().stopRecording { previewVC, error in
-                if let error = error {
-                    print("Stop recording error: \(error.localizedDescription)")
+        // Handler pro volání z Dart kódu
+        channel.setMethodCallHandler { [weak self] (call, result) in
+            guard let self = self else { return }
+
+            switch call.method {
+            case "startBroadcast":
+                self.broadcastManager?.startBroadcast { success in
+                    if success {
+                        self.pipManager?.startPiP()
+                        result("Broadcast started")
+                    } else {
+                        result(FlutterError(code: "START_FAILED",
+                                            message: "Unable to start broadcast",
+                                            details: nil))
+                    }
                 }
+
+            case "stopBroadcast":
+                self.broadcastManager?.stopBroadcast()
+                self.pipManager?.stopPiP()
+                result("Broadcast stopped")
+
+            default:
+                result(FlutterMethodNotImplemented)
             }
         }
+
+        // Flutter registrace
+        GeneratedPluginRegistrant.register(with: self)
+
+        return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 }

@@ -1,17 +1,19 @@
 import ReplayKit
-
-// Tento soubor je součástí Broadcast Upload Extension targetu.
-// Zde přijímáš sampleBuffer (video/audio) a obvykle je odesíláš na server.
+import UIKit
 
 class SampleHandler: RPBroadcastSampleHandler {
+    let appGroupID = "group.com.yourcompany.flutter_screenrecorder"
+    let filename = "latest.jpg"
+
+    func sharedURL() -> URL? {
+        return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?.appendingPathComponent(filename)
+    }
 
     override func broadcastStarted(withSetupInfo setupInfo: [String : NSObject]?) {
-        // Called when the user starts the broadcast. Set up connections to server here.
         print("broadcastStarted")
     }
 
     override func broadcastPaused() {
-        // User has requested to pause
         print("broadcastPaused")
     }
 
@@ -20,23 +22,30 @@ class SampleHandler: RPBroadcastSampleHandler {
     }
 
     override func broadcastFinished() {
-        // Clean up
         print("broadcastFinished")
     }
 
     override func processSampleBuffer(_ sampleBuffer: CMSampleBuffer, with sampleBufferType: RPSampleBufferType) {
-        switch sampleBufferType {
-        case .video:
-            // Here you receive CMSampleBuffer with video frames
-            // You could encode and send them to your server.
-            // For debugging, we just log
-            print("video frame received")
-        case .audioApp:
-            print("audio app frame")
-        case .audioMic:
-            print("audio mic frame")
-        @unknown default:
-            break
+        guard sampleBufferType == .video else { return }
+
+        // Convert CMSampleBuffer -> UIImage -> JPEG Data -> write to App Group file
+        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+
+        let ciImage = CIImage(cvPixelBuffer: imageBuffer)
+        let context = CIContext(options: nil)
+
+        if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+            let uiImage = UIImage(cgImage: cgImage)
+            if let jpegData = uiImage.jpegData(compressionQuality: 0.6), let url = sharedURL() {
+                do {
+                    try jpegData.write(to: url, options: .atomic)
+                } catch {
+                    print("Failed to write shared frame: \(error)")
+                }
+            }
         }
+
+        CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
     }
 }
