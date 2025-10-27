@@ -1,25 +1,15 @@
-import Foundation
 import AVKit
 import UIKit
 
 @objc class PiPManager: NSObject {
-    static let shared = PiPManager()
-    private var pipController: AVPictureInPictureController?
-    private var playerLayer: AVPlayerLayer?
+    static var pipController: AVPictureInPictureController?
 
-    func startPiP(with url: URL) {
-        let player = AVPlayer(url: url)
-        playerLayer = AVPlayerLayer(player: player)
-        guard AVPictureInPictureController.isPictureInPictureSupported(),
-              let layer = playerLayer else { return }
-
-        pipController = AVPictureInPictureController(playerLayer: layer)
-        player.play()
+    static func startPiP(view: UIView) {
+        guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
+        let playerLayer = AVPlayerLayer(player: AVPlayer())
+        playerLayer.frame = view.bounds
+        view.layer.addSublayer(playerLayer)
+        pipController = AVPictureInPictureController(playerLayer: playerLayer)
         pipController?.startPictureInPicture()
-    }
-
-    func stopPiP() {
-        pipController?.stopPictureInPicture()
-        pipController = nil
     }
 }
