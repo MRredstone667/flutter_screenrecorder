@@ -1,5 +1,32 @@
 import UIKit
 import Flutter
+import ReplayKit
+import AVKit
+
+// BroadcastManager
+@objc class BroadcastManager: NSObject {
+    static func startBroadcast() {
+        let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 60, height: 60))
+        picker.preferredExtension = "com.example.flutterAppAndrejs.BroadcastUploadExtension"
+        if let button = picker.subviews.first as? UIButton {
+            button.sendActions(for: .allTouchEvents)
+        }
+    }
+}
+
+// PiPManager
+@objc class PiPManager: NSObject {
+    static var pipController: AVPictureInPictureController?
+
+    static func startPiP(view: UIView) {
+        guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
+        let playerLayer = AVPlayerLayer(player: AVPlayer())
+        playerLayer.frame = view.bounds
+        view.layer.addSublayer(playerLayer)
+        pipController = AVPictureInPictureController(playerLayer: playerLayer)
+        pipController?.startPictureInPicture()
+    }
+}
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
