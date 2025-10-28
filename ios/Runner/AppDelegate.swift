@@ -18,7 +18,7 @@ import ReplayKit
             
             switch call.method {
             case "startRecording":
-                self.startRecording(result: result)
+                self.showBroadcastPicker(result: result)
             case "stopRecording":
                 self.stopRecording(result: result)
             default:
@@ -30,14 +30,28 @@ import ReplayKit
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
     
-    // MARK: - ReplayKit
-    
-    func startRecording(result: @escaping FlutterResult) {
-        if let controller = window?.rootViewController {
-            BroadcastManager.shared.showPicker(in: controller)
-            result("Opened broadcast picker")
+    // MARK: - Broadcast picker (inline místo BroadcastManager)
+    func showBroadcastPicker(result: @escaping FlutterResult) {
+        if #available(iOS 12.0, *) {
+            guard let controller = window?.rootViewController else {
+                result("Controller not found")
+                return
+            }
+            
+            let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 150, y: 300, width: 60, height: 60))
+            picker.preferredExtension = "com.example.flutterAppAndrejs.BroadcastUploadExtension"
+            picker.showsMicrophoneButton = true
+            controller.view.addSubview(picker)
+            
+            // Automatické kliknutí
+            for subview in picker.subviews {
+                if let button = subview as? UIButton {
+                    button.sendActions(for: .allTouchEvents)
+                }
+            }
+            result("Picker shown")
         } else {
-            result("Controller not found")
+            result("iOS 12+ required")
         }
     }
     
