@@ -53,5 +53,11 @@
     <string>Microphone access is needed for screen broadcast.</string>
     <key>RPBroadcastExtension</key>
     <string>com.example.flutterAppAndrejs.BroadcastUploadExtension</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access to record your voice.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access for broadcast preview.</string>
+	<key>RPBroadcastExtension</key>
+	<string>com.example.flutterAppAndrejs.BroadcastUploadExtension</string>
 </dict>
 </plist>
