@@ -1,56 +1,75 @@
 import UIKit
 import Flutter
 import ReplayKit
-import AVKit
-
-// BroadcastManager
-@objc class BroadcastManager: NSObject {
-    static func startBroadcast() {
-        let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 60, height: 60))
-        picker.preferredExtension = "com.example.flutterAppAndrejs.BroadcastUploadExtension"
-        if let button = picker.subviews.first as? UIButton {
-            button.sendActions(for: .allTouchEvents)
-        }
-    }
-}
-
-// PiPManager
-@objc class PiPManager: NSObject {
-    static var pipController: AVPictureInPictureController?
-
-    static func startPiP(view: UIView) {
-        guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
-        let playerLayer = AVPlayerLayer(player: AVPlayer())
-        playerLayer.frame = view.bounds
-        view.layer.addSublayer(playerLayer)
-        pipController = AVPictureInPictureController(playerLayer: playerLayer)
-        pipController?.startPictureInPicture()
-    }
-}
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
+    
+  var recorder = RPScreenRecorder.shared()
+  var isRecording = false
+    
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    let controller : FlutterViewController = window?.rootViewController as! FlutterViewController
+
+    let controller: FlutterViewController = window?.rootViewController as! FlutterViewController
     let channel = FlutterMethodChannel(name: "com.example.flutterAppAndrejs/native", binaryMessenger: controller.binaryMessenger)
 
     channel.setMethodCallHandler({
       (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
-      if call.method == "startBroadcast" {
-        BroadcastManager.startBroadcast()
-        result(nil)
-      } else if call.method == "startPiP" {
-        PiPManager.startPiP(view: controller.view)
-        result(nil)
-      } else {
+
+      switch call.method {
+      case "startRecording":
+        self.startRecording(result: result)
+      case "stopRecording":
+        self.stopRecording(result: result)
+      default:
         result(FlutterMethodNotImplemented)
       }
     })
 
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  func startRecording(result: @escaping FlutterResult) {
+    if #available(iOS 12.0, *) {
+      recorder.startRecording { error in
+        if let error = error {
+          result("Error starting recording: \(error.localizedDescription)")
+        } else {
+          self.isRecording = true
+          result("Recording started")
+        }
+      }
+    } else {
+      result("Not supported on iOS < 12")
+    }
+  }
+
+  func stopRecording(result: @escaping FlutterResult) {
+    if #available(iOS 12.0, *) {
+      recorder.stopRecording { preview, error in
+        if let error = error {
+          result("Error stopping recording: \(error.localizedDescription)")
+          return
+        }
+        if let preview = preview {
+          preview.previewControllerDelegate = self
+          self.window?.rootViewController?.present(preview, animated: true, completion: nil)
+          self.isRecording = false
+          result("Recording stopped")
+        }
+      }
+    } else {
+      result("Not supported on iOS < 12")
+    }
+  }
+}
+
+extension AppDelegate: RPPreviewViewControllerDelegate {
+  func previewControllerDidFinish(_ previewController: RPPreviewViewController) {
+    previewController.dismiss(animated: true, completion: nil)
   }
 }
