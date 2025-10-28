@@ -47,5 +47,11 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app uses the microphone to record screen audio.</string>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Microphone access is needed for screen broadcast.</string>
+    <key>RPBroadcastExtension</key>
+    <string>com.example.flutterAppAndrejs.BroadcastUploadExtension</string>
 </dict>
 </plist>
