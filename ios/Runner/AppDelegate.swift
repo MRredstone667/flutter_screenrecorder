@@ -4,74 +4,60 @@ import ReplayKit
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
-
-    var broadcastController: RPBroadcastController?
+    var screenRecorder = RPScreenRecorder.shared()
+    var isRecording = false
 
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        let controller: FlutterViewController = window?.rootViewController as! FlutterViewController
+        let broadcastChannel = FlutterMethodChannel(name: "com.example.flutterAppAndrejs/broadcast",
+                                                    binaryMessenger: controller.binaryMessenger)
+        
+        broadcastChannel.setMethodCallHandler({
+            (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
+            switch call.method {
+            case "startBroadcast":
+                self.startRecording(result: result)
+            case "stopBroadcast":
+                self.stopRecording(result: result)
+            default:
+                result(FlutterMethodNotImplemented)
+            }
+        })
+
         GeneratedPluginRegistrant.register(with: self)
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 
-    @objc func startBroadcast() {
-        RPBroadcastActivityViewController.load { broadcastAVC, error in
-            if let error = error {
-                print("Error loading broadcast: \(error.localizedDescription)")
-                return
-            }
-
-            guard let broadcastAVC = broadcastAVC else {
-                print("Broadcast Activity View Controller is nil")
-                return
-            }
-
-            broadcastAVC.delegate = self
-            DispatchQueue.main.async {
-                if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
-                    rootVC.present(broadcastAVC, animated: true, completion: nil)
-                }
-            }
-        }
-    }
-
-    @objc func stopBroadcast() {
-        guard let controller = broadcastController else {
-            print("No broadcast controller active")
-            return
-        }
-
-        controller.finishBroadcast { error in
-            if let error = error {
-                print("Error stopping broadcast: \(error.localizedDescription)")
-            } else {
-                print("Broadcast stopped successfully.")
-            }
-        }
-    }
-}
-
-extension AppDelegate: RPBroadcastActivityViewControllerDelegate {
-    func broadcastActivityViewController(
-        _ broadcastActivityViewController: RPBroadcastActivityViewController,
-        didFinishWith broadcastController: RPBroadcastController?,
-        error: Error?
-    ) {
-        broadcastActivityViewController.dismiss(animated: true) {
-            if let error = error {
-                print("Error finishing broadcast setup: \(error.localizedDescription)")
-                return
-            }
-
-            self.broadcastController = broadcastController
-            self.broadcastController?.startBroadcast { error in
+    func startRecording(result: @escaping FlutterResult) {
+        if screenRecorder.isAvailable && !isRecording {
+            screenRecorder.startRecording { error in
                 if let error = error {
-                    print("Error starting broadcast: \(error.localizedDescription)")
+                    result(FlutterError(code: "START_ERROR", message: error.localizedDescription, details: nil))
                 } else {
-                    print("Broadcast started successfully!")
+                    self.isRecording = true
+                    result(nil)
                 }
             }
+        } else {
+            result(FlutterError(code: "UNAVAILABLE", message: "Screen recorder not available", details: nil))
+        }
+    }
+
+    func stopRecording(result: @escaping FlutterResult) {
+        if isRecording {
+            screenRecorder.stopRecording { previewVC, error in
+                if let error = error {
+                    result(FlutterError(code: "STOP_ERROR", message: error.localizedDescription, details: nil))
+                } else {
+                    self.isRecording = false
+                    result(nil)
+                }
+            }
+        } else {
+            result(FlutterError(code: "NOT_RECORDING", message: "Not currently recording", details: nil))
         }
     }
 }

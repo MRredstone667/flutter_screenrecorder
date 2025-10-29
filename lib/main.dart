@@ -12,76 +12,89 @@ class MultitaskingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Multitasking',
-      home: const MultitaskingHome(),
+      theme: ThemeData.dark(),
+      home: const BroadcastScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MultitaskingHome extends StatefulWidget {
-  const MultitaskingHome({super.key});
+class BroadcastScreen extends StatefulWidget {
+  const BroadcastScreen({super.key});
 
   @override
-  State<MultitaskingHome> createState() => _MultitaskingHomeState();
+  State<BroadcastScreen> createState() => _BroadcastScreenState();
 }
 
-class _MultitaskingHomeState extends State<MultitaskingHome> {
-  static const platform = MethodChannel('com.multitasking/broadcast');
-  String status = "No Signal :(";
+class _BroadcastScreenState extends State<BroadcastScreen> {
+  static const platform = MethodChannel('com.example.flutterAppAndrejs/broadcast');
+  bool _isBroadcasting = false;
 
-  Future<void> _start() async {
+  Future<void> _startBroadcast() async {
     try {
       await platform.invokeMethod('startBroadcast');
-      setState(() => status = "Broadcasting...");
-    } catch (e) {
-      setState(() => status = "Error: $e");
+      setState(() => _isBroadcasting = true);
+    } on PlatformException catch (e) {
+      debugPrint("Failed to start broadcast: ${e.message}");
     }
   }
 
-  Future<void> _stop() async {
+  Future<void> _stopBroadcast() async {
     try {
       await platform.invokeMethod('stopBroadcast');
-      setState(() => status = "No Signal :(");
-    } catch (e) {
-      setState(() => status = "Error: $e");
+      setState(() => _isBroadcasting = false);
+    } on PlatformException catch (e) {
+      debugPrint("Failed to stop broadcast: ${e.message}");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text('Multitasking Live Broadcast'),
+        centerTitle: true,
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AspectRatio(
-            aspectRatio: MediaQuery.of(context).size.aspectRatio,
-            child: Container(
-              color: Colors.grey[900],
-              alignment: Alignment.center,
-              child: Text(
-                status,
-                style: const TextStyle(color: Colors.white, fontSize: 20),
-              ),
+          // Live preview square
+          Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.blueAccent, width: 3),
+              color: Colors.black,
+            ),
+            child: const LivePreviewWidget(),
+          ),
+          const SizedBox(height: 30),
+          ElevatedButton.icon(
+            onPressed: _isBroadcasting ? _stopBroadcast : _startBroadcast,
+            icon: Icon(_isBroadcasting ? Icons.stop : Icons.play_arrow),
+            label: Text(_isBroadcasting ? "Stop Broadcast" : "Start Broadcast"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isBroadcasting ? Colors.red : Colors.green,
+              minimumSize: const Size(180, 50),
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton(
-                onPressed: _start,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                child: const Text("START"),
-              ),
-              ElevatedButton(
-                onPressed: _stop,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text("STOP"),
-              ),
-            ],
-          ),
         ],
+      ),
+    );
+  }
+}
+
+class LivePreviewWidget extends StatelessWidget {
+  const LivePreviewWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Simulovaný náhled (černý čtverec s textem)
+    return const Center(
+      child: Text(
+        "🎥 Live Preview",
+        style: TextStyle(color: Colors.white70, fontSize: 18),
       ),
     );
   }
