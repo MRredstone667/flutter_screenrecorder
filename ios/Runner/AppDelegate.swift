@@ -1,77 +1,108 @@
 import UIKit
 import Flutter
 import ReplayKit
+import AVKit
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
 
-    var recorder = RPScreenRecorder.shared()
-    var isRecording = false
+    var broadcastController: RPBroadcastActivityViewController?
+    var playerViewController: AVPlayerViewController?
+    var player: AVPlayer?
+    var methodChannel: FlutterMethodChannel?
 
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        let controller : FlutterViewController = window?.rootViewController as! FlutterViewController
-        let channel = FlutterMethodChannel(name: "com.example.replaykit/broadcast",
-                                           binaryMessenger: controller.binaryMessenger)
-        
-        channel.setMethodCallHandler({
-            (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
+
+        let controller: FlutterViewController = window?.rootViewController as! FlutterViewController
+        methodChannel = FlutterMethodChannel(name: "com.multitasking/broadcast", binaryMessenger: controller.binaryMessenger)
+
+        methodChannel?.setMethodCallHandler { [weak self] (call, result) in
             switch call.method {
-            case "startRecording":
-                self.startBroadcast(result: result)
-            case "stopRecording":
-                self.stopBroadcast(result: result)
+            case "startBroadcast":
+                self?.startBroadcast(result: result)
+            case "stopBroadcast":
+                self?.stopBroadcast(result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
-        })
-        
+        }
+
         GeneratedPluginRegistrant.register(with: self)
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 
-    @available(iOS 12.0, *)
-    func startBroadcast(result: @escaping FlutterResult) {
-        if isRecording {
-            result("Already recording")
-            return
-        }
-        
-        guard let controller = window?.rootViewController else {
-            result("No root controller")
-            return
-        }
-        
-        let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 150, y: 300, width: 60, height: 60))
-        picker.preferredExtension = "com.example.flutterAppAndrejs.BroadcastUploadExtension"
-        picker.showsMicrophoneButton = true
-        controller.view.addSubview(picker)
-        
-        // Simulace kliknutí na broadcast tlačítko
-        for view in picker.subviews {
-            if let button = view as? UIButton {
-                button.sendActions(for: .allTouchEvents)
+    // MARK: - Start Broadcast
+    private func startBroadcast(result: @escaping FlutterResult) {
+        RPBroadcastActivityViewController.load { broadcastAVC, error in
+            guard error == nil, let broadcastAVC = broadcastAVC else {
+                result("Error: \(error?.localizedDescription ?? "Unknown")")
+                return
+            }
+
+            broadcastAVC.delegate = self
+            DispatchQueue.main.async {
+                self.window?.rootViewController?.present(broadcastAVC, animated: true, completion: nil)
             }
         }
-        
-        isRecording = true
-        result("Broadcast started")
     }
 
-    func stopBroadcast(result: @escaping FlutterResult) {
-        if #available(iOS 11.0, *) {
-            recorder.stopRecording { previewVC, error in
-                self.isRecording = false
-                if let error = error {
-                    result("Stop error: \(error.localizedDescription)")
+    // MARK: - Stop Broadcast
+    private func stopBroadcast(result: @escaping FlutterResult) {
+        if let controller = broadcastController {
+            controller.dismiss(animated: true)
+            controller.extensionBundleID = nil
+        }
+
+        if let player = player {
+            player.pause()
+            player.replaceCurrentItem(with: nil)
+        }
+
+        playerViewController?.dismiss(animated: true, completion: nil)
+        player = nil
+        playerViewController = nil
+        broadcastController = nil
+        result("Stopped")
+    }
+}
+
+extension AppDelegate: RPBroadcastActivityViewControllerDelegate {
+    func broadcastActivityViewController(
+        _ broadcastActivityViewController: RPBroadcastActivityViewController,
+        didFinishWith broadcastController: RPBroadcastController?, error: Error?
+    ) {
+        broadcastActivityViewController.dismiss(animated: true) {
+            guard error == nil, let controller = broadcastController else {
+                print("Broadcast start failed: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+
+            controller.startBroadcast { broadcastError in
+                if let broadcastError = broadcastError {
+                    print("Broadcast start error: \(broadcastError.localizedDescription)")
                     return
                 }
-                result("Broadcast stopped")
+
+                self.broadcastController = controller
+                self.startLivePreview()
             }
-        } else {
-            result("Not supported on this iOS version")
+        }
+    }
+
+    private func startLivePreview() {
+        guard let url = URL(string: "rtmp://localhost/live") else { return }
+        player = AVPlayer(url: url)
+
+        playerViewController = AVPlayerViewController()
+        playerViewController?.player = player
+        playerViewController?.allowsPictureInPicturePlayback = true
+        playerViewController?.player?.play()
+
+        if let pvc = playerViewController {
+            window?.rootViewController?.present(pvc, animated: true, completion: nil)
         }
     }
 }

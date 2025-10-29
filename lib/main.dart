@@ -2,112 +2,86 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MultitaskingApp());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+class MultitaskingApp extends StatelessWidget {
+  const MultitaskingApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Multitasking',
+      home: const MultitaskingHome(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
-  static const platform = MethodChannel('com.example.replaykit/broadcast');
-  bool isBroadcasting = false;
+class MultitaskingHome extends StatefulWidget {
+  const MultitaskingHome({super.key});
+
+  @override
+  State<MultitaskingHome> createState() => _MultitaskingHomeState();
+}
+
+class _MultitaskingHomeState extends State<MultitaskingHome> {
+  static const platform = MethodChannel('com.multitasking/broadcast');
   String status = "No Signal :(";
 
-  Future<void> startBroadcast() async {
+  Future<void> _start() async {
     try {
-      final result = await platform.invokeMethod('startRecording');
-      setState(() {
-        isBroadcasting = true;
-        status = "Broadcasting...";
-      });
-      print(result);
-    } on PlatformException catch (e) {
-      print("Error: ${e.message}");
+      await platform.invokeMethod('startBroadcast');
+      setState(() => status = "Broadcasting...");
+    } catch (e) {
+      setState(() => status = "Error: $e");
     }
   }
 
-  Future<void> stopBroadcast() async {
+  Future<void> _stop() async {
     try {
-      final result = await platform.invokeMethod('stopRecording');
-      setState(() {
-        isBroadcasting = false;
-        status = "No Signal :(";
-      });
-      print(result);
-    } on PlatformException catch (e) {
-      print("Error: ${e.message}");
+      await platform.invokeMethod('stopBroadcast');
+      setState(() => status = "No Signal :(");
+    } catch (e) {
+      setState(() => status = "Error: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: Colors.black,
-        body: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: isLandscape ? 16 / 9 : 9 / 16,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        border: Border.all(color: Colors.white30, width: 2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          status,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AspectRatio(
+            aspectRatio: MediaQuery.of(context).size.aspectRatio,
+            child: Container(
+              color: Colors.grey[900],
+              alignment: Alignment.center,
+              child: Text(
+                status,
+                style: const TextStyle(color: Colors.white, fontSize: 20),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      onPressed: isBroadcasting ? null : startBroadcast,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        minimumSize: const Size(120, 50),
-                      ),
-                      child: const Text("START",
-                          style: TextStyle(fontSize: 18, color: Colors.white)),
-                    ),
-                    ElevatedButton(
-                      onPressed: isBroadcasting ? stopBroadcast : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        minimumSize: const Size(120, 50),
-                      ),
-                      child: const Text("STOP",
-                          style: TextStyle(fontSize: 18, color: Colors.white)),
-                    ),
-                  ],
-                ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: _start,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const Text("START"),
+              ),
+              ElevatedButton(
+                onPressed: _stop,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text("STOP"),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }

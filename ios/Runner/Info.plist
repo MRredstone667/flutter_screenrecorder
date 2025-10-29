@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Flutter App Andrejs</string>
+	<string>Multitasking</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>flutter_app_andrejs</string>
+	<string>multitasking</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -22,12 +22,15 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -41,23 +44,31 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+
+	<!-- 🔐 Opravené klíče pro přístup -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app uses the microphone to record screen audio.</string>
-    <key>UIViewControllerBasedStatusBarAppearance</key>
-    <false/>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Microphone access is needed for screen broadcast.</string>
-    <key>RPBroadcastExtension</key>
-    <string>com.example.flutterAppAndrejs.BroadcastUploadExtension</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs microphone access to record your voice.</string>
+	<string>Needed for screen recording audio.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access for broadcast preview.</string>
+	<string>Needed for Picture-in-Picture preview.</string>
+
+	<!-- 🛰️ ReplayKit konfigurace -->
 	<key>RPBroadcastExtension</key>
-	<string>com.example.flutterAppAndrejs.BroadcastUploadExtension</string>
+	<string>ScreenBroadcastUploadExtension</string>
+
+	<!-- 📺 Picture-in-Picture a background módy -->
+	<key>UISupportsPictureInPicture</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>
