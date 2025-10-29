@@ -13,59 +13,63 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Media Viewer',
       debugShowCheckedModeBanner: false,
-      title: 'PiP Video Viewer',
       theme: ThemeData.dark(useMaterial3: true),
-      home: const MediaPlayerPage(),
+      home: const MediaPlayerScreen(),
     );
   }
 }
 
-class MediaPlayerPage extends StatefulWidget {
-  const MediaPlayerPage({super.key});
+class MediaPlayerScreen extends StatefulWidget {
+  const MediaPlayerScreen({super.key});
 
   @override
-  State<MediaPlayerPage> createState() => _MediaPlayerPageState();
+  State<MediaPlayerScreen> createState() => _MediaPlayerScreenState();
 }
 
-class _MediaPlayerPageState extends State<MediaPlayerPage> {
+class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   File? _selectedFile;
   VideoPlayerController? _controller;
   bool _isVideo = false;
+  bool _isInitialized = false;
 
-  Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.media,
-    );
+  Future<void> _pickMedia() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.media);
+    if (result == null) return;
 
-    if (result != null && result.files.single.path != null) {
-      final path = result.files.single.path!;
-      final extension = path.split('.').last.toLowerCase();
+    final path = result.files.single.path!;
+    final file = File(path);
+    final extension = path.split('.').last.toLowerCase();
 
-      setState(() {
-        _selectedFile = File(path);
-        _isVideo = ['mp4', 'mov', 'avi', 'mkv'].contains(extension);
-      });
+    setState(() {
+      _selectedFile = file;
+      _isVideo = ['mp4', 'mov', 'avi', 'mkv'].contains(extension);
+      _isInitialized = false;
+    });
 
-      if (_isVideo) {
-        _controller?.dispose();
-        _controller = VideoPlayerController.file(_selectedFile!)
-          ..initialize().then((_) {
-            _controller!.setLooping(true);
-            setState(() {});
+    if (_isVideo) {
+      _controller?.dispose();
+      _controller = VideoPlayerController.file(file)
+        ..initialize().then((_) {
+          _controller!.setLooping(true);
+          _controller!.play();
+          setState(() {
+            _isInitialized = true;
           });
-      }
+        });
     }
   }
 
   void _togglePlayPause() {
-    if (_controller != null && _controller!.value.isInitialized) {
-      setState(() {
-        _controller!.value.isPlaying
-            ? _controller!.pause()
-            : _controller!.play();
-      });
-    }
+    if (_controller == null || !_controller!.value.isInitialized) return;
+    setState(() {
+      if (_controller!.value.isPlaying) {
+        _controller!.pause();
+      } else {
+        _controller!.play();
+      }
+    });
   }
 
   void _clearMedia() {
@@ -74,6 +78,7 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
       _selectedFile = null;
       _controller = null;
       _isVideo = false;
+      _isInitialized = false;
     });
   }
 
@@ -83,24 +88,37 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
     super.dispose();
   }
 
+  Widget _buildMediaView() {
+    if (_selectedFile == null) {
+      return const Center(
+        child: Text(
+          "No signal :(",
+          style: TextStyle(fontSize: 24, color: Colors.grey),
+        ),
+      );
+    }
+
+    if (_isVideo) {
+      if (_controller != null && _isInitialized) {
+        return AspectRatio(
+          aspectRatio: _controller!.value.aspectRatio,
+          child: VideoPlayer(_controller!),
+        );
+      } else {
+        return const Center(child: CircularProgressIndicator());
+      }
+    } else {
+      return Image.file(_selectedFile!, fit: BoxFit.contain);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('PiP Video Viewer')),
-      body: Center(
-        child: _selectedFile == null
-            ? const Text(
-                "No signal :(",
-                style: TextStyle(fontSize: 24, color: Colors.grey),
-              )
-            : _isVideo
-                ? _controller != null && _controller!.value.isInitialized
-                    ? AspectRatio(
-                        aspectRatio: _controller!.value.aspectRatio,
-                        child: VideoPlayer(_controller!),
-                      )
-                    : const CircularProgressIndicator()
-                : Image.file(_selectedFile!, fit: BoxFit.contain),
+      appBar: AppBar(title: const Text('Media Viewer')),
+      body: Container(
+        color: Colors.black,
+        child: Center(child: _buildMediaView()),
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -108,12 +126,12 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             ElevatedButton.icon(
-              onPressed: _pickFile,
+              onPressed: _pickMedia,
               icon: const Icon(Icons.upload_file),
               label: const Text("Nahrát"),
             ),
             ElevatedButton.icon(
-              onPressed: _isVideo ? _togglePlayPause : null,
+              onPressed: _isVideo && _isInitialized ? _togglePlayPause : null,
               icon: Icon(
                 _controller != null && _controller!.value.isPlaying
                     ? Icons.pause
