@@ -2,37 +2,36 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key>
-	<string>FloatingMedia</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.andrejs.floatingmedia</string>
-	<key>CFBundleVersion</key>
-	<string>1.0</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+    <key>CFBundleName</key>
+    <string>FloatingMedia</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.andrejs.floatingmedia</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
 
-	<!-- ✅ Povolení přístupu k fotkám a souborům -->
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Tato aplikace potřebuje přístup ke galerii pro výběr videa nebo obrázku.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Aplikace může potřebovat kameru pro nahrání videa.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Pro přehrávání videí s zvukem je potřeba přístup k mikrofonu.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Needed to display local media.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Needed to access gallery files.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Needed for potential video with audio.</string>
 
-	<!-- ✅ Přehrávání na pozadí -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-		<string>picture-in-picture</string>
-	</array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>fetch</string>
+    </array>
+    
+    <key>UISupportsPictureInPicture</key>
+    <true/>
 
-	<!-- ✅ Povolení přehrávání médií -->
-	<key>UIRequiresPersistentWiFi</key>
-	<false/>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
-
-	<key>LSApplicationCategoryType</key>
-	<string>public.app-category.video</string>
+    <key>UIRequiresPersistentWiFi</key>
+    <false/>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.video</string>
 </dict>
 </plist>

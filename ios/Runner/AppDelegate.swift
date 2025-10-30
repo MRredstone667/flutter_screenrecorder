@@ -1,5 +1,6 @@
 import UIKit
 import Flutter
+import AVFoundation  // 🔧 DŮLEŽITÉ – přidá podporu pro AVAudioSession
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,10 +9,10 @@ import Flutter
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
 
-    // Registrace všech Flutter pluginů (např. video_player, file_picker apod.)
+    // Registrace všech pluginů Flutteru
     GeneratedPluginRegistrant.register(with: self)
 
-    // Povolit přehrávání na pozadí (např. pro audio a video)
+    // Aktivace audio session (umožní přehrávání videa i po uzamčení / PiP)
     do {
       try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
       try AVAudioSession.sharedInstance().setActive(true)
@@ -19,7 +20,6 @@ import Flutter
       print("⚠️ Nelze aktivovat audio session: \(error)")
     }
 
-    // Hotovo
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

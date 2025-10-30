@@ -4,18 +4,20 @@ import 'package:file_picker/file_picker.dart';
 import 'package:video_player/video_player.dart';
 
 void main() {
-  runApp(const FloatingVideoApp());
+  runApp(const FloatingMediaApp());
 }
 
-class FloatingVideoApp extends StatelessWidget {
-  const FloatingVideoApp({super.key});
+class FloatingMediaApp extends StatelessWidget {
+  const FloatingMediaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Floating Media Player',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true),
+      title: 'Floating Media',
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: Colors.black,
+      ),
       home: const FloatingMediaHome(),
     );
   }
@@ -29,128 +31,145 @@ class FloatingMediaHome extends StatefulWidget {
 }
 
 class _FloatingMediaHomeState extends State<FloatingMediaHome> {
-  File? selectedFile;
-  VideoPlayerController? videoController;
-  bool isVideo = false;
-  bool isFloating = false;
+  File? _selectedFile;
+  VideoPlayerController? _controller;
+  bool _isVideo = false;
+  bool _loopVideo = true;
 
-  Future<void> pickFile() async {
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['mp4', 'mov', 'png', 'jpg', 'jpeg'],
+      allowedExtensions: ['mp4', 'mov', 'jpg', 'png'],
     );
 
-    if (result != null) {
+    if (result != null && result.files.single.path != null) {
       final file = File(result.files.single.path!);
-      final ext = file.path.split('.').last.toLowerCase();
+      final isVideo = file.path.endsWith('.mp4') || file.path.endsWith('.mov');
 
       setState(() {
-        selectedFile = file;
-        isVideo = ['mp4', 'mov'].contains(ext);
-        isFloating = false;
+        _selectedFile = file;
+        _isVideo = isVideo;
       });
 
       if (isVideo) {
-        videoController?.dispose();
-        videoController = VideoPlayerController.file(file)
-          ..setLooping(true)
+        _controller?.dispose();
+        _controller = VideoPlayerController.file(file)
+          ..setLooping(_loopVideo)
           ..initialize().then((_) {
             setState(() {});
-            videoController!.play();
+            _controller?.play();
           });
       }
     }
   }
 
-  void toggleFloating() {
+  Widget _buildMediaPreview() {
+    if (_selectedFile == null) {
+      return const Center(
+        child: Text(
+          'No Signal :(',
+          style: TextStyle(color: Colors.white54, fontSize: 20),
+        ),
+      );
+    }
+
+    if (_isVideo && _controller != null && _controller!.value.isInitialized) {
+      return AspectRatio(
+        aspectRatio: _controller!.value.aspectRatio,
+        child: VideoPlayer(_controller!),
+      );
+    }
+
+    // obrázek
+    return Image.file(_selectedFile!, fit: BoxFit.contain);
+  }
+
+  void _togglePlayPause() {
+    if (_controller == null) return;
     setState(() {
-      isFloating = !isFloating;
+      if (_controller!.value.isPlaying) {
+        _controller!.pause();
+      } else {
+        _controller!.play();
+      }
     });
   }
 
-  @override
-  void dispose() {
-    videoController?.dispose();
-    super.dispose();
+  void _stopPlayback() {
+    if (_controller != null) {
+      _controller!.pause();
+      _controller!.seekTo(Duration.zero);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Floating Media Player'),
+        title: const Text('Floating Media'),
         centerTitle: true,
+        backgroundColor: Colors.black,
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Center(
-            child: selectedFile == null
-                ? const Text(
-                    'No Signal :(',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300),
-                  )
-                : isVideo
-                    ? AspectRatio(
-                        aspectRatio: videoController!.value.aspectRatio,
-                        child: VideoPlayer(videoController!),
-                      )
-                    : Image.file(selectedFile!),
-          ),
-          if (isFloating && selectedFile != null)
-            Positioned(
-              right: 20,
-              bottom: 20,
-              child: GestureDetector(
-                onPanUpdate: (details) {
-                  setState(() {
-                    final pos = Offset(
-                      details.globalPosition.dx,
-                      details.globalPosition.dy,
-                    );
-                  });
-                },
-                child: Container(
-                  width: 180,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white30),
-                  ),
-                  clipBehavior: Clip.hardEdge,
-                  child: isVideo
-                      ? VideoPlayer(videoController!)
-                      : Image.file(selectedFile!, fit: BoxFit.cover),
+          Expanded(
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.2), // ✅ opraveno (místo withOpacity)
+                  border: Border.all(color: Colors.white24),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: _buildMediaPreview(),
               ),
             ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _pickFile,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Vybrat soubor'),
+              ),
+              ElevatedButton.icon(
+                onPressed: _togglePlayPause,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Přehrát / Pauza'),
+              ),
+              ElevatedButton.icon(
+                onPressed: _stopPlayback,
+                icon: const Icon(Icons.stop),
+                label: const Text('Stop'),
+              ),
+            ],
+          ),
+          if (_isVideo)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Checkbox(
+                  value: _loopVideo,
+                  onChanged: (val) {
+                    setState(() {
+                      _loopVideo = val ?? true;
+                      _controller?.setLooping(_loopVideo);
+                    });
+                  },
+                ),
+                const Text('Přehrávat ve smyčce'),
+              ],
+            ),
+          const SizedBox(height: 16),
         ],
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ElevatedButton.icon(
-              onPressed: pickFile,
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Vybrat soubor'),
-            ),
-            ElevatedButton.icon(
-              onPressed: selectedFile != null ? toggleFloating : null,
-              icon: const Icon(Icons.picture_in_picture),
-              label: Text(isFloating ? 'Zavřít mini okno' : 'Zobrazit mini okno'),
-            ),
-            if (isVideo)
-              Checkbox(
-                value: videoController?.value.isLooping ?? false,
-                onChanged: (val) {
-                  videoController?.setLooping(val ?? true);
-                  setState(() {});
-                },
-              ),
-          ],
-        ),
       ),
     );
   }
