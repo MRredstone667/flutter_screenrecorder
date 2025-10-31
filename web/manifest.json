@@ -1,6 +1,6 @@
 {
-    "name": "flutter_app_andrejs",
-    "short_name": "flutter_app_andrejs",
+    "name": "pip_view_app_demo",
+    "short_name": "pip_view_app_demo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

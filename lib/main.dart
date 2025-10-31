@@ -1,175 +1,76 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:video_player/video_player.dart';
+import 'package:pip_view/pip_view.dart';
+import 'package:pip_view_app_demo/background.dart';
 
 void main() {
-  runApp(const FloatingMediaApp());
+  runApp(const MyApp());
 }
 
-class FloatingMediaApp extends StatelessWidget {
-  const FloatingMediaApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Floating Media',
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: const FloatingMediaHome(),
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class FloatingMediaHome extends StatefulWidget {
-  const FloatingMediaHome({super.key});
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key, required this.title});
+
+  final String title;
 
   @override
-  State<FloatingMediaHome> createState() => _FloatingMediaHomeState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _FloatingMediaHomeState extends State<FloatingMediaHome> {
-  File? _selectedFile;
-  VideoPlayerController? _controller;
-  bool _isVideo = false;
-  bool _loopVideo = true;
+class _MyHomePageState extends State<MyHomePage> {
+  int _counter = 0;
 
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['mp4', 'mov', 'jpg', 'png'],
-    );
-
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
-      final isVideo = file.path.endsWith('.mp4') || file.path.endsWith('.mov');
-
-      setState(() {
-        _selectedFile = file;
-        _isVideo = isVideo;
-      });
-
-      if (isVideo) {
-        _controller?.dispose();
-        _controller = VideoPlayerController.file(file)
-          ..setLooping(_loopVideo)
-          ..initialize().then((_) {
-            setState(() {});
-            _controller?.play();
-          });
-      }
-    }
-  }
-
-  Widget _buildMediaPreview() {
-    if (_selectedFile == null) {
-      return const Center(
-        child: Text(
-          'No Signal :(',
-          style: TextStyle(color: Colors.white54, fontSize: 20),
-        ),
-      );
-    }
-
-    if (_isVideo && _controller != null && _controller!.value.isInitialized) {
-      return AspectRatio(
-        aspectRatio: _controller!.value.aspectRatio,
-        child: VideoPlayer(_controller!),
-      );
-    }
-
-    // obrázek
-    return Image.file(_selectedFile!, fit: BoxFit.contain);
-  }
-
-  void _togglePlayPause() {
-    if (_controller == null) return;
+  void _incrementCounter() {
     setState(() {
-      if (_controller!.value.isPlaying) {
-        _controller!.pause();
-      } else {
-        _controller!.play();
-      }
+      _counter++;
     });
-  }
-
-  void _stopPlayback() {
-    if (_controller != null) {
-      _controller!.pause();
-      _controller!.seekTo(Duration.zero);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Floating Media'),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: Container(
-                margin: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.2), // ✅ opraveno (místo withOpacity)
-                  border: Border.all(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: _buildMediaPreview(),
+    return PIPView(
+      builder: (context, isFloating) => Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: Text(widget.title),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Text(
+                'You have pushed the button this many times:',
               ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton.icon(
-                onPressed: _pickFile,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Vybrat soubor'),
-              ),
-              ElevatedButton.icon(
-                onPressed: _togglePlayPause,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Přehrát / Pauza'),
-              ),
-              ElevatedButton.icon(
-                onPressed: _stopPlayback,
-                icon: const Icon(Icons.stop),
-                label: const Text('Stop'),
+              Text(
+                '$_counter',
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
             ],
           ),
-          if (_isVideo)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Checkbox(
-                  value: _loopVideo,
-                  onChanged: (val) {
-                    setState(() {
-                      _loopVideo = val ?? true;
-                      _controller?.setLooping(_loopVideo);
-                    });
-                  },
-                ),
-                const Text('Přehrávat ve smyčce'),
-              ],
-            ),
-          const SizedBox(height: 16),
-        ],
+        ),
+       floatingActionButton: isFloating
+    ? null // 👈 Když je PiP zapnutý, tlačítko se nezobrazí
+    : FloatingActionButton(
+        onPressed: () {
+          PIPView.of(context)?.presentBelow(const BackGroundScreen());
+        },
+        tooltip: 'Show PiP',
+        child: const Icon(Icons.picture_in_picture),
+      ),
       ),
     );
   }
